@@ -1,0 +1,22 @@
+canvas {
+	width: 100%;
+	display: block;
+}
+
+body {
+	margin: 0;
+	padding: 0;
+	overflow-y: scroll;
+}
+
+.controls {
+	text-align: center;
+	margin: 10px;
+}
+
+.controls button {
+	padding: 10px 20px;
+	font-size: 16px;
+	margin: 5px;
+	cursor: pointer;
+}
