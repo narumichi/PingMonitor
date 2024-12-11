@@ -1,27 +1,24 @@
 const responseTimes = [];
-const failedTimes = [];
 let currentDate = new Date();
 
 async function loadLogs(date) {
 	responseTimes.length = 0;
-	failedTimes.length = 0;
 	
 	const isoDate = date.toISOString().split("T")[0];
 	const response = await fetch(`/logs?date=${isoDate}`);
 	const text = await response.text();
-	
+	const currentDate = document.getElementById("current-day");
+	currentDate.innerHTML = isoDate;
+
 	const lines = text.split("\n");
 	lines.forEach((line) => {
 		const parts = line.split(",");
 		if (parts.length < 2) return;
 		
 		const timestamp = new Date(parts[0]);
-		const value = parts[1] === "Ping failed" ? null : parseFloat(parts[1]);
+		const value = parts[1] === "Ping failed" ? -1 : parseFloat(parts[1]); // 失敗は -1 を入れておく。その他はそのままの値。
 		
 		responseTimes.push({ time: timestamp, value });
-		if (value === null) {
-			failedTimes.push(timestamp);
-		}
 	});
 	updateHeatmap();
 }
@@ -30,7 +27,6 @@ function initializeHeatmap() {
 	const today = new Date(currentDate);
 	today.setHours(0, 0, 0, 0);
 	responseTimes.length = 0;
-	failedTimes.length = 0;
 	
 	for (let hour = 0; hour < 24; hour++) {
 		const dateTime = new Date(today.getTime() + hour * 60 * 60 * 1000);
@@ -43,27 +39,26 @@ function updateHeatmap() {
 	const ctx = canvas.getContext("2d");
 	const pageHeight = window.innerHeight;
 	const rowHeight = Math.floor(pageHeight / 24);
-	const marginHeight = rowHeight / 4;
 	const labelWidth = 50;
 	const containerWidth = canvas.clientWidth - labelWidth;
 	const pixelsPerMs = containerWidth / (60 * 60 * 1000);
 	
 	canvas.width = containerWidth + labelWidth;
-	canvas.height = 24 * (rowHeight + marginHeight);
+	canvas.height = 24 * rowHeight;
 	
-	drawHourLabels(ctx, labelWidth, rowHeight, marginHeight);
-	drawTimeLines(ctx, labelWidth, containerWidth, rowHeight, marginHeight);
+	drawHourLabels(ctx, labelWidth, rowHeight);
+	drawTimeLines(ctx, labelWidth, containerWidth, rowHeight);
 	
 	for (let hour = 0; hour < 24; hour++) {
 		const rowIndex = hour;
-		const y = rowIndex * (rowHeight + marginHeight);
+		const y = rowIndex * rowHeight;
 		
 		const hourStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), hour, 0, 0);
 		const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000);
 		const hourData = responseTimes.filter((data) => data.time >= hourStart && data.time < hourEnd);
 		
 		let prevTime = hourStart;
-		
+
 		hourData.forEach((entry) => {
 			const x = labelWidth + (entry.time - hourStart) * pixelsPerMs;
 			const width = (entry.time - prevTime) * pixelsPerMs;
@@ -74,7 +69,7 @@ function updateHeatmap() {
 				return;
 			}
 			
-			if (failedTimes.some((time) => time.getTime() === entry.time.getTime())) {
+			if (entry.value < 0) {
 				ctx.fillStyle = "rgb(255, 0, 0)"; // Ping失敗は赤
 			} else {
 				const intensity = Math.min(entry.value / 200, 1);
@@ -87,25 +82,25 @@ function updateHeatmap() {
 		});
 	}
 	
-	drawTimeMarkers(ctx, labelWidth, containerWidth, rowHeight, marginHeight);
+	drawTimeMarkers(ctx, labelWidth, containerWidth, rowHeight);
 }
 
-function drawTimeLines(ctx, labelWidth, width, rowHeight, marginHeight) {
+function drawTimeLines(ctx, labelWidth, width, rowHeight) {
 	for (let row = 0; row < 24; row++) {
-		const centerY = row * (rowHeight + marginHeight) + rowHeight / 2; // ヒートマップの上下中央
+		const centerY = row * rowHeight + rowHeight / 2; // ヒートマップの上下中央
 		
 		ctx.fillStyle = "black";
 		ctx.fillRect(labelWidth, centerY - 1, width, 2);
 	}
 }
 
-function drawTimeMarkers(ctx, labelWidth, width, rowHeight, marginHeight) {
+function drawTimeMarkers(ctx, labelWidth, width, rowHeight) {
 	const pixelsPerMinute = width / 60; // 1分あたりのピクセル数
 	const largeMarkerRadius = rowHeight / 8; // 30分ごとの円の半径
 	const smallMarkerRadius = rowHeight / 16; // 5分ごとの円の半径
 	
 	for (let row = 0; row < 24; row++) {
-		const centerY = row * (rowHeight + marginHeight) + rowHeight / 2; // ヒートマップの上下中央
+		const centerY = row * rowHeight + rowHeight / 2; // ヒートマップの上下中央
 		
 		for (let minute = 0; minute <= 60; minute += 5) { // 5分おきに描画
 			const centerX = labelWidth + minute * pixelsPerMinute;
@@ -128,14 +123,14 @@ function drawTimeMarkers(ctx, labelWidth, width, rowHeight, marginHeight) {
 	}
 }
 
-function drawHourLabels(ctx, labelWidth, rowHeight, marginHeight) {
+function drawHourLabels(ctx, labelWidth, rowHeight) {
 	ctx.fillStyle = "black";
 	ctx.font = `${rowHeight / 2}px Arial`;
 	ctx.textAlign = "right";
 	ctx.textBaseline = "middle";
 	
 	for (let row = 0; row < 24; row++) {
-		const centerY = row * (rowHeight + marginHeight) + rowHeight / 2;
+		const centerY = row * rowHeight + rowHeight / 2;
 		const hourText = `${String(row).padStart(2, "0")}`;
 		ctx.fillText(hourText, labelWidth - 10, centerY);
 	}
@@ -162,8 +157,7 @@ window.onload = async () => {
 		const time = new Date(timestamp);
 		
 		if (value === "Ping failed") {
-			failedTimes.push(time);
-			responseTimes.push({ time, value: null });
+			responseTimes.push({ time, value: -1 });
 		} else {
 			responseTimes.push({ time, value: parseFloat(value) });
 		}
