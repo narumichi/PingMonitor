@@ -4,7 +4,8 @@ let currentDate = new Date();
 async function loadLogs(date) {
 	responseTimes.length = 0;
 	
-	const isoDate = date.toISOString().split("T")[0];
+	// sv-SEロケールはYYYY-MM-DD形式の日付文字列を戻す
+	const isoDate = date.toLocaleDateString('sv-SE');
 	const response = await fetch(`/logs?date=${isoDate}`);
 	const text = await response.text();
 	const currentDate = document.getElementById("current-day");
