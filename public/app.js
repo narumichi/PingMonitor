@@ -60,9 +60,11 @@ function updateHeatmap() {
 		
 		let prevTime = hourStart;
 
+		let isFirstRect = true;
 		hourData.forEach((entry) => {
 			const x = labelWidth + (entry.time - hourStart) * pixelsPerMs;
-			const width = (entry.time - prevTime) * pixelsPerMs;
+			const width = (isFirstRect) ? 10000 * pixelsPerMs : (entry.time - prevTime) * pixelsPerMs;
+			isFirstRect = false;
 			
 			if (entry.value === null || entry.value === undefined) {
 				// ログがない部分はスキップ
@@ -78,7 +80,7 @@ function updateHeatmap() {
 				ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
 			}
 			
-			ctx.fillRect(x, y, width, rowHeight);
+			ctx.fillRect(x-width, y, width+1, rowHeight);
 			prevTime = entry.time;
 		});
 	}
