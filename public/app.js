@@ -80,7 +80,14 @@ function updateHeatmap() {
 				ctx.fillStyle = `rgb(${grayValue}, ${grayValue}, ${grayValue})`;
 			}
 			
-			ctx.fillRect(x-width, y, width+1, rowHeight);
+			if (x-width > labelWidth) {
+				ctx.fillRect(x, y, -width-1, rowHeight);
+			} else {
+				const prevWidth = labelWidth - (x-width);
+				const nextWidth = x - labelWidth;
+				ctx.fillRect(labelWidth + (hourEnd - hourStart) * pixelsPerMs, (rowIndex - 1) * rowHeight, -prevWidth, rowHeight);
+				ctx.fillRect(labelWidth, y, nextWidth+1, rowHeight);
+			}
 			prevTime = entry.time;
 		});
 	}
