@@ -1,3 +1,6 @@
+# これは何？
+- ping コマンドのログを残すプログラムと表示画面です
+
 # 導入方法
 ```
 git clone git@github.com:narumichi/PingMonitor.git
